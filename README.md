@@ -21,7 +21,27 @@ npm run dev
 
 Open the Vite URL (usually `http://localhost:5173`). The API uses an in-memory H2 database seeded with fictional doctors and listens on port 8080. API health is `/actuator/health`.
 
+### Walk through a booking
+
+Open a fictional specialist's appointment times, choose a date and time, and reserve it. Copy the booking reference into the lookup form. The reserved time will be unavailable when you open the same specialist and date again.
+
+![Careway's local booking dialog with a fictional specialist, a date field, and selectable times](docs/images/booking.webp)
+
+## Verify the booking behavior
+
+From `backend/`, run `./mvnw.cmd test` on Windows or `bash ./mvnw test` on macOS/Linux. The tests use an isolated H2 database. They check that two simultaneous attempts at the same slot produce one committed appointment and one conflict, and that inactive doctors are unavailable on both read and write paths. The frontend build and backend tests run in GitHub Actions. The H2 tests do not establish PostgreSQL concurrency behavior.
+
 ## API
+
+```mermaid
+flowchart LR
+    UI[React booking screen] -->|Read availability| API[Spring REST API]
+    UI -->|Reserve a listed time| API
+    API --> S[Transactional booking service]
+    S -->|Lock active doctor row| D[(Database)]
+    S -->|Check and insert slot| D
+    D -->|Unique doctor, date, time| S
+```
 
 - `GET /api/v1/doctors?query=&specialty=` — filter the sample directory
 - `GET /api/v1/doctors/{id}/slots?date=YYYY-MM-DD` — list time-slot availability
