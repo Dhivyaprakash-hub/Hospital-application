@@ -13,7 +13,7 @@ import java.util.*;
  @Transactional(readOnly=true) public List<Doctor> listDoctors(){return doctors.findAllByActiveTrue();}
  @Transactional(readOnly=true) public List<Slot> available(UUID doctorId,LocalDate date){
   if(!date.isAfter(LocalDate.now(BUSINESS_ZONE))||date.isAfter(LocalDate.now(BUSINESS_ZONE).plusDays(60)))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Choose a date from tomorrow through the next 60 days");
-  if(!doctors.existsById(doctorId))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Doctor not found");
+  if(!doctors.existsByIdAndActiveTrue(doctorId))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Doctor not found");
   Set<LocalTime> taken=new HashSet<>();appointments.findAllByDoctorIdAndAppointmentDateAndStatus(doctorId,date,"CONFIRMED").forEach(a->taken.add(a.getAppointmentTime()));
   return SLOTS.stream().map(time->new Slot(time.toString(),!taken.contains(time))).toList();
  }
