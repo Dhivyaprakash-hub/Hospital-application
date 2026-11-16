@@ -39,7 +39,9 @@ Open a fictional specialist's appointment times, choose a date and time, and res
 
 ## Verify the booking behavior
 
-From `backend/`, run `./mvnw.cmd test` on Windows or `bash ./mvnw test` on macOS/Linux. The tests use an isolated H2 database. They check that two simultaneous attempts at the same slot produce one committed appointment and one conflict, and that inactive doctors are unavailable on both read and write paths. The frontend build and backend tests run in GitHub Actions. The H2 tests do not establish PostgreSQL concurrency behavior.
+From `backend/`, run `.\mvnw.cmd test` in PowerShell or `bash ./mvnw test` on macOS/Linux. The tests default to isolated H2. The concurrency test submits two HTTP requests for the same slot and checks for one `201 Created`, one `409 Conflict`, and one committed appointment. The second test checks that inactive doctors are unavailable on read and write paths.
+
+GitHub Actions also runs the suite against a fresh PostgreSQL database. To exercise PostgreSQL locally, set `CAREWAY_TEST_DB_URL`, `CAREWAY_TEST_DB_USERNAME`, and `CAREWAY_TEST_DB_PASSWORD` for a disposable database before running the Maven test command. The suite applies Flyway migrations and writes test rows.
 
 ## API
 
@@ -51,6 +53,8 @@ flowchart LR
     S -->|Lock active doctor row| D[(Database)]
     S -->|Check and insert slot| D
     D -->|Unique doctor, date, time| S
+    S -->|Slot reserved| Created[201 Created]
+    S -->|Slot already taken| Conflict[409 Conflict]
 ```
 
 - `GET /api/v1/doctors?query=&specialty=` — filter the sample directory
