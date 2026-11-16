@@ -1,21 +1,31 @@
 # Careway — Consultation Booking
 
+[![Verify](https://github.com/Dhivyaprakash-hub/Hospital-application/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/Dhivyaprakash-hub/Hospital-application/actions/workflows/verify.yml)
+
 A fresh rebuild of the archived consultation project as a privacy-conscious appointment scheduling demo. It uses a React 19 + Vite frontend and a Java 21 + Spring Boot 3 REST API with Flyway migrations, sample doctors, filtered specialist search, date/slot availability, booking references, and a PostgreSQL option.
 
 The old packaged app contained a hard-coded database credential and a token authentication bypass. Those archives and their unsafe account/token implementation were removed from the working tree. The rebuilt app deliberately collects no patient name, email, health details, or payment data.
 
 ## Run locally
 
-Use Node.js 22.12+ for the frontend and Java 21 with Maven 3.6.3+ for the API. Start the API from `backend/`:
+Use Node.js 22.12+ for the frontend and Java 21 for the API. From `backend/`, start the API with the included Maven wrapper.
+
+Windows PowerShell:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+macOS/Linux:
 
 ```sh
-Windows: `./mvnw.cmd spring-boot:run` (macOS/Linux: `./mvnw spring-boot:run`)
+bash ./mvnw spring-boot:run
 ```
 
 Then start the frontend from `frontend/`:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
