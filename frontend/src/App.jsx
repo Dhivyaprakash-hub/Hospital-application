@@ -9,7 +9,11 @@ const dateFromToday = (days) => { const date = new Date(); date.setDate(date.get
 async function request(path, options) {
   const response = await fetch(`${API}/api/v1${path}`, { ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } });
   const payload = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new Error(payload?.message || payload?.error || 'The scheduling service could not complete that request.');
+  if (!response.ok) {
+    const issue = new Error(payload?.message || payload?.error || 'The scheduling service could not complete that request.');
+    issue.status = response.status;
+    throw issue;
+  }
   return payload;
 }
 
@@ -54,7 +58,15 @@ function App() {
     event.preventDefault(); if (!selected || !chosenSlot) return;
     setBooking(true); setBookingError('');
     try { setReceipt(await request('/appointments', { method: 'POST', body: JSON.stringify({ doctorId: selected.id, date, time: chosenSlot }) })); }
-    catch (issue) { setBookingError(issue.message); }
+    catch (issue) {
+      if (issue.status === 409) {
+        setSlots((current) => current.filter((slot) => slot.time !== chosenSlot));
+        setChosenSlot('');
+        setBookingError('That time was just reserved. Choose another available time.');
+      } else {
+        setBookingError(issue.message);
+      }
+    }
     finally { setBooking(false); }
   }
   async function checkBooking(event) {
@@ -81,7 +93,7 @@ function App() {
       <section className="lookup-section" id="lookup"><div><p className="eyebrow">03 / ALREADY BOOKED?</p><h2>Find your <em>appointment.</em></h2><p>Enter the booking reference you received after scheduling.</p></div><form className="lookup-form" onSubmit={checkBooking}><label className="sr-only" htmlFor="booking-ref">Booking reference</label><input id="booking-ref" required value={lookup} onChange={(event) => setLookup(event.target.value)} placeholder="Paste your booking reference" /><button className="primary-link" disabled={lookupBusy}>{lookupBusy ? 'Looking…' : 'Find booking'} <span>↗</span></button>{lookupError && <p className="inline-error" role="alert">{lookupError}</p>}{lookupResult && <div className="lookup-result" role="status"><strong>{lookupResult.doctor}</strong><span>{prettyDate(lookupResult.date)} · {lookupResult.time}</span><small>Reference: {lookupResult.reference}</small></div>}</form></section>
     </main>
     <footer className="site-footer"><a href="#home" className="brand"><span className="brand-symbol">c</span><span>careway<span className="brand-dot">.</span></span></a><p>A consultation scheduling portfolio demo. Sample doctors only; not a healthcare provider or source of medical advice.</p><a href="#home">Back to top ↑</a></footer>
-    {selected && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDialog(); }}><section className="booking-dialog" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button className="dialog-close" onClick={closeDialog} aria-label="Close booking">×</button>{receipt ? <div className="receipt"><p className="eyebrow">YOUR APPOINTMENT IS RESERVED</p><div className="receipt-mark">✓</div><h2 id="booking-title">A time to look forward to.</h2><p>{receipt.doctor} · {receipt.specialty}</p><p>{prettyDate(receipt.date)} at {receipt.time}</p><div className="reference-box"><span>BOOKING REFERENCE</span><strong>{receipt.reference}</strong><small>Copy this reference to find the appointment later.</small></div><button className="primary-link" onClick={closeDialog}>Done <span>↗</span></button></div> : <form onSubmit={submitBooking}><p className="eyebrow">BOOK A CONSULTATION</p><h2 id="booking-title">{selected.name}</h2><p className="booking-specialty">{selected.specialty} <span>·</span> {selected.clinic}</p><label className="field-label" htmlFor="appointment-date">Choose a date</label><input id="appointment-date" type="date" min={dateFromToday(1)} max={dateFromToday(60)} value={date} onChange={(event) => setDate(event.target.value)} required /><div className="field-label">Available times</div>{loadingSlots ? <div className="slots-loading">Loading appointment times…</div> : <div className="slot-list">{slots.filter((slot) => slot.available).map((slot) => <button type="button" key={slot.time} className={`slot-button ${chosenSlot === slot.time ? 'selected' : ''}`} onClick={() => setChosenSlot(slot.time)}>{slot.time}</button>)}{!slots.some((slot) => slot.available) && <p className="no-slots">No open times on this date. Choose another day.</p>}</div>}{bookingError && <p className="inline-error" role="alert">{bookingError}</p>}<div className="fee-note"><span>Sample consultation fee</span><strong>{money(selected.consultationFee)}</strong></div><button className="primary-link full" type="submit" disabled={!chosenSlot || booking}>{booking ? 'Reserving…' : 'Reserve this time'} <span>↗</span></button><p className="privacy-copy">No name, email, or health information is collected in this demo.</p></form>}</section></div>}
+    {selected && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeDialog(); }}><section className="booking-dialog" role="dialog" aria-modal="true" aria-labelledby="booking-title"><button className="dialog-close" onClick={closeDialog} aria-label="Close booking">×</button>{receipt ? <div className="receipt"><p className="eyebrow">YOUR APPOINTMENT IS RESERVED</p><div className="receipt-mark">✓</div><h2 id="booking-title">A time to look forward to.</h2><p>{receipt.doctor} · {receipt.specialty}</p><p>{prettyDate(receipt.date)} at {receipt.time}</p><div className="reference-box"><span>BOOKING REFERENCE</span><strong>{receipt.reference}</strong><small>Copy this reference to find the appointment later.</small></div><button className="primary-link" onClick={closeDialog}>Done <span>↗</span></button></div> : <form onSubmit={submitBooking}><p className="eyebrow">BOOK A CONSULTATION</p><h2 id="booking-title">{selected.name}</h2><p className="booking-specialty">{selected.specialty} <span>·</span> {selected.clinic}</p><label className="field-label" htmlFor="appointment-date">Choose a date</label><input id="appointment-date" type="date" min={dateFromToday(1)} max={dateFromToday(60)} value={date} disabled={booking} onChange={(event) => setDate(event.target.value)} required /><div className="field-label">Available times</div>{loadingSlots ? <div className="slots-loading">Loading appointment times…</div> : <div className="slot-list">{slots.filter((slot) => slot.available).map((slot) => <button type="button" key={slot.time} className={`slot-button ${chosenSlot === slot.time ? 'selected' : ''}`} aria-pressed={chosenSlot === slot.time} disabled={booking} onClick={() => { setChosenSlot(slot.time); setBookingError(''); }}>{slot.time}</button>)}{!slots.some((slot) => slot.available) && <p className="no-slots">No open times on this date. Choose another day.</p>}</div>}{bookingError && <p className="inline-error" role="alert">{bookingError}</p>}<div className="fee-note"><span>Sample consultation fee</span><strong>{money(selected.consultationFee)}</strong></div><button className="primary-link full" type="submit" disabled={!chosenSlot || booking}>{booking ? 'Reserving…' : 'Reserve this time'} <span>↗</span></button><p className="privacy-copy">No name, email, or health information is collected in this demo.</p></form>}</section></div>}
   </div>;
 }
 

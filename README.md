@@ -37,6 +37,10 @@ Open a fictional specialist's appointment times, choose a date and time, and res
 
 ![Careway's local booking dialog with a fictional specialist, a date field, and selectable times](docs/images/booking.webp)
 
+If a second booking reserves the time before you submit, the selected slot disappears and you can choose another time.
+
+![The real Careway conflict message shown after another request reserved the selected time](docs/images/booking-conflict.jpg)
+
 ## Verify the booking behavior
 
 From `backend/`, run `.\mvnw.cmd test` in PowerShell or `bash ./mvnw test` on macOS/Linux. The tests default to isolated H2. The concurrency test submits two HTTP requests for the same slot and checks for one `201 Created`, one `409 Conflict`, and one committed appointment. The second test checks that inactive doctors are unavailable on read and write paths.
