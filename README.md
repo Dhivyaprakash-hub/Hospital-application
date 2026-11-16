@@ -75,3 +75,7 @@ Set `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD` for PostgreSQL. Set `CORS_ORIGIN`
 ## Boundaries
 
 This is a portfolio demo with fictional listings and no patient data. It is not a hospital, healthcare provider, medical record system, or source of medical advice. Do not use it for actual patient scheduling. A real healthcare deployment needs identity and authorization, private data handling, audit trails, consent and retention rules, abuse protection, and a security/compliance review. The appointment endpoints are intentionally unauthenticated for this data-free demo and should not be exposed as a real service.
+
+## License
+
+The original Careway application code and documentation are available under the [MIT License](LICENSE). Third-party dependencies retain their own terms. The license does not grant rights to any separate legacy application or third-party assets.
