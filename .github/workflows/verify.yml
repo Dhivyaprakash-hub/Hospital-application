@@ -11,6 +11,20 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: careway_test
+          POSTGRES_USER: careway_test
+          POSTGRES_PASSWORD: careway_ci_only
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U careway_test -d careway_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -23,6 +37,12 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
       - run: bash ./mvnw -B test
+      - name: Verify booking with PostgreSQL
+        run: bash ./mvnw -B test
+        env:
+          CAREWAY_TEST_DB_URL: jdbc:postgresql://localhost:${{ job.services.postgres.ports[5432] }}/careway_test
+          CAREWAY_TEST_DB_USERNAME: careway_test
+          CAREWAY_TEST_DB_PASSWORD: careway_ci_only
 
   frontend:
     runs-on: ubuntu-latest

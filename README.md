@@ -1,21 +1,31 @@
 # Careway — Consultation Booking
 
+[![Verify](https://github.com/Dhivyaprakash-hub/Hospital-application/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/Dhivyaprakash-hub/Hospital-application/actions/workflows/verify.yml)
+
 A fresh rebuild of the archived consultation project as a privacy-conscious appointment scheduling demo. It uses a React 19 + Vite frontend and a Java 21 + Spring Boot 3 REST API with Flyway migrations, sample doctors, filtered specialist search, date/slot availability, booking references, and a PostgreSQL option.
 
 The old packaged app contained a hard-coded database credential and a token authentication bypass. Those archives and their unsafe account/token implementation were removed from the working tree. The rebuilt app deliberately collects no patient name, email, health details, or payment data.
 
 ## Run locally
 
-Use Node.js 22.12+ for the frontend and Java 21 with Maven 3.6.3+ for the API. Start the API from `backend/`:
+Use Node.js 22.12+ for the frontend and Java 21 for the API. From `backend/`, start the API with the included Maven wrapper.
+
+Windows PowerShell:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+macOS/Linux:
 
 ```sh
-Windows: `./mvnw.cmd spring-boot:run` (macOS/Linux: `./mvnw spring-boot:run`)
+bash ./mvnw spring-boot:run
 ```
 
 Then start the frontend from `frontend/`:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
@@ -29,7 +39,9 @@ Open a fictional specialist's appointment times, choose a date and time, and res
 
 ## Verify the booking behavior
 
-From `backend/`, run `./mvnw.cmd test` on Windows or `bash ./mvnw test` on macOS/Linux. The tests use an isolated H2 database. They check that two simultaneous attempts at the same slot produce one committed appointment and one conflict, and that inactive doctors are unavailable on both read and write paths. The frontend build and backend tests run in GitHub Actions. The H2 tests do not establish PostgreSQL concurrency behavior.
+From `backend/`, run `.\mvnw.cmd test` in PowerShell or `bash ./mvnw test` on macOS/Linux. The tests default to isolated H2. The concurrency test submits two HTTP requests for the same slot and checks for one `201 Created`, one `409 Conflict`, and one committed appointment. The second test checks that inactive doctors are unavailable on read and write paths.
+
+GitHub Actions also runs the suite against a fresh PostgreSQL database. To exercise PostgreSQL locally, set `CAREWAY_TEST_DB_URL`, `CAREWAY_TEST_DB_USERNAME`, and `CAREWAY_TEST_DB_PASSWORD` for a disposable database before running the Maven test command. The suite applies Flyway migrations and writes test rows.
 
 ## API
 
@@ -41,6 +53,8 @@ flowchart LR
     S -->|Lock active doctor row| D[(Database)]
     S -->|Check and insert slot| D
     D -->|Unique doctor, date, time| S
+    S -->|Slot reserved| Created[201 Created]
+    S -->|Slot already taken| Conflict[409 Conflict]
 ```
 
 - `GET /api/v1/doctors?query=&specialty=` — filter the sample directory
